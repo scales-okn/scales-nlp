@@ -3,7 +3,14 @@ Pathway Events
 
 ```{eval-rst}
 
-TODO: demo getting events and entry level labels out of the docket object
+.. code-block:: console
+
+    import scales_nlp
+
+    docket = scales_nlp.Docket.from_ucid('CASE_UCID')
+    for entry in docket:
+        if entry.event:
+            print(entry.row_number, entry.event.name, entry.event.event_type)
 
 ```
 
