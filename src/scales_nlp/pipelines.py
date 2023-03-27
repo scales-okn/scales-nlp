@@ -240,7 +240,7 @@ class OntologySingleLabelPipeline(ClassificationPipeline):
 
 class DocketClassificationPipeline(MultiLabelClassificationPipeline):
     def get_model_name(self, model_name, **kwargs):
-        return 'scales-okn/docket-classifier'
+        return 'scales-okn/docket-classification'
 
     def process_predictions(self, examples, predictions):
 
@@ -254,7 +254,7 @@ class DocketClassificationPipeline(MultiLabelClassificationPipeline):
 
 class DocketEncoderPipeline(SentenceEncodingPipeline):
     def get_model_name(self, model_name, **kwargs):
-        return 'scales-okn/docket-triplet-vectors'
+        return 'scales-okn/docket-encoder'
     
     @property
     def require_auth_token(self):
