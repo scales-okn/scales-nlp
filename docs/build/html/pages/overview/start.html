@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html  lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+      <title>Getting Started</title>
+    
+          <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+          <link rel="stylesheet" href="../../_static/theme.css " type="text/css" />
+          <link rel="stylesheet" href="../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" type="text/css" />
+      
+      <!-- sphinx script_files -->
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+
+      
+      <!-- bundled in js (rollup iife) -->
+      <!-- <script src="../../_static/theme-vendors.js"></script> -->
+      <script src="../../_static/theme.js" defer></script>
+    
+  <link rel="index" title="Index" href="../../genindex.html" />
+  <link rel="search" title="Search" href="../../search.html" />
+  <link rel="next" title="Collect PACER Data" href="data.html" />
+  <link rel="prev" title="SCALES-NLP Documentation" href="../../index.html" /> 
+  </head>
+
+  <body>
+    <div id="app">
+    <div class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
+  <router-link to="../../index.html" class="home-link">
+    
+      <img class="logo" src="../../_static/logo.png" alt="logo"/>
+    
+  </router-link>
+
+  <div class="links">
+    <navlinks class="can-hide">
+
+  
+    <div class="nav-item">
+      <a href="../../index.html#scales-nlp-documentation"
+         class="nav-link  router-link-active">
+         Overview
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../../index.html#scales-nlp-documentation"
+         class="nav-link ">
+         Litigation Ontology
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../../index.html#scales-nlp-documentation"
+         class="nav-link ">
+         Package Reference
+      </a>
+    </div>
+  
+
+
+
+    </navlinks>
+  </div>
+</navbar>
+
+      
+      <div class="sidebar-mask" @click="toggleSidebar(false)">
+      </div>
+        <sidebar @toggle-sidebar="toggleSidebar">
+          
+          <navlinks>
+            
+
+  
+    <div class="nav-item">
+      <a href="../../index.html#scales-nlp-documentation"
+         class="nav-link  router-link-active">
+         Overview
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../../index.html#scales-nlp-documentation"
+         class="nav-link ">
+         Litigation Ontology
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../../index.html#scales-nlp-documentation"
+         class="nav-link ">
+         Package Reference
+      </a>
+    </div>
+  
+
+
+
+            
+          </navlinks><div id="searchbox" class="searchbox" role="search">
+  <div class="caption"><span class="caption-text">Quick search</span>
+    <div class="searchformwrapper">
+      <form class="search" action="../../search.html" method="get">
+        <input type="text" name="q" />
+        <input type="submit" value="Search" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div><div class="sidebar-links" role="navigation" aria-label="main navigation">
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../../index.html#scales-nlp-documentation">Overview</a></span>
+      </p>
+      <ul class="current">
+        
+          <li class="toctree-l1 current">
+            
+              <a href="#" class="reference internal current">Getting Started</a>
+            
+
+            
+              <ul>
+                
+                  <li class="toctree-l2"><a href="#installation" class="reference internal">Installation</a></li>
+                
+                  <li class="toctree-l2"><a href="#configuration" class="reference internal">Configuration</a></li>
+                
+              </ul>
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="data.html" class="reference internal ">Collect PACER Data</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="inference.html" class="reference internal ">Apply SCALES Models</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="research.html" class="reference internal ">Research Tutorial</a>
+            
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../../index.html#scales-nlp-documentation">Litigation Ontology</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../ontology/events.html" class="reference internal ">Pathway Events</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../ontology/labels.html" class="reference internal ">Labels</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../ontology/entities.html" class="reference internal ">Entities</a>
+            
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../../index.html#scales-nlp-documentation">Package Reference</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../api/pipelines.html" class="reference internal ">Pipelines</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../api/routines.html" class="reference internal ">Training Routines</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../api/cli.html" class="reference internal ">Command Line Interface</a>
+            
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+</div>
+        </sidebar>
+
+      <page>
+          <div class="body-header" role="navigation" aria-label="navigation">
+  
+  <ul class="breadcrumbs">
+    <li><a href="../../index.html">Docs</a> &raquo;</li>
+    
+    <li>Getting Started</li>
+  </ul>
+  
+
+  <ul class="page-nav">
+  <li class="prev">
+    <a href="../../index.html"
+       title="previous chapter">← SCALES-NLP Documentation</a>
+  </li>
+  <li class="next">
+    <a href="data.html"
+       title="next chapter">Collect PACER Data →</a>
+  </li>
+</ul>
+  
+</div>
+<hr>
+          <div class="content" role="main" v-pre>
+            
+  <section id="getting-started">
+<h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this heading">¶</a></h1>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">¶</a></h2>
+<p>You can install this library with pip:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>pip<span class="w"> </span>install<span class="w"> </span>scales-nlp
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To use a GPU (recommended) your PyTorch installation must be compatible with your version of CUDA.
+See the <a class="reference external" href="https://pytorch.org/get-started/locally/">PyTorch installation instructions</a> for more information.</p>
+</div>
+</section>
+<section id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this heading">¶</a></h2>
+<p>Some features use package wide <strong>configuration variables</strong> that can be set using the CLI.
+These configuration variables are bundled into groups.  To set their values run the following:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>scales-nlp<span class="w"> </span>configure
+</pre></div>
+</div>
+<p>To get the most out of this library, set values for the following variables:</p>
+<p><strong>PACER_DIR:</strong> The path to a directory where your PACER data will be stored.  Any data downloaded using the crawler and model updates using the CLI will automatically store and manage your data here.</p>
+<p><strong>PACER_USERNAME:</strong> Username for your PACER account.  Only needed if using the crawler.</p>
+<p><strong>PACER_PASSWORD:</strong> Password for your PACER account.</p>
+<p><strong>HUGGING_FACE_TOKEN:</strong> Only needed if using the Pipelines API with private models.</p>
+<p>Additionally you can run <code class="docutils literal notranslate"><span class="pre">scales-nlp</span> <span class="pre">configure</span> <span class="pre">train-args</span></code> to modify the default training hyperparameters for the TrainingRoutines API.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Environment variables</strong> can be used to override the values of any configuration variables
+with the same name.  Use your environment to create localized, custom configurations that deviate
+from the package-wide configuration set using the CLI.</p>
+</div>
+<p>Access configuration variables from within the module using the <code class="docutils literal notranslate"><span class="pre">scales_nlp.config</span></code> object.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">scales_nlp</span> <span class="kn">import</span> <span class="n">config</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;PACER_DIR&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+          </div>
+          <div class="page-nav">
+            <div class="inner"><ul class="page-nav">
+  <li class="prev">
+    <a href="../../index.html"
+       title="previous chapter">← SCALES-NLP Documentation</a>
+  </li>
+  <li class="next">
+    <a href="data.html"
+       title="next chapter">Collect PACER Data →</a>
+  </li>
+</ul><div class="footer" role="contentinfo">
+      &#169; Copyright 2023, SCALES-OKN.
+</div>
+            </div>
+          </div>
+      </page>
+    </div></div>
+    
+    
+  </body>
+</html>

@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html  lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+      <title>Pipelines</title>
+    
+          <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+          <link rel="stylesheet" href="../../_static/theme.css " type="text/css" />
+          <link rel="stylesheet" href="../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" type="text/css" />
+      
+      <!-- sphinx script_files -->
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+
+      
+      <!-- bundled in js (rollup iife) -->
+      <!-- <script src="../../_static/theme-vendors.js"></script> -->
+      <script src="../../_static/theme.js" defer></script>
+    
+  <link rel="index" title="Index" href="../../genindex.html" />
+  <link rel="search" title="Search" href="../../search.html" />
+  <link rel="next" title="Training Routines" href="routines.html" />
+  <link rel="prev" title="Entities" href="../ontology/entities.html" /> 
+  </head>
+
+  <body>
+    <div id="app">
+    <div class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
+  <router-link to="../../index.html" class="home-link">
+    
+      <img class="logo" src="../../_static/logo.png" alt="logo"/>
+    
+  </router-link>
+
+  <div class="links">
+    <navlinks class="can-hide">
+
+  
+    <div class="nav-item">
+      <a href="../../index.html#scales-nlp-documentation"
+         class="nav-link ">
+         Overview
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../../index.html#scales-nlp-documentation"
+         class="nav-link ">
+         Litigation Ontology
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../../index.html#scales-nlp-documentation"
+         class="nav-link  router-link-active">
+         Package Reference
+      </a>
+    </div>
+  
+
+
+
+    </navlinks>
+  </div>
+</navbar>
+
+      
+      <div class="sidebar-mask" @click="toggleSidebar(false)">
+      </div>
+        <sidebar @toggle-sidebar="toggleSidebar">
+          
+          <navlinks>
+            
+
+  
+    <div class="nav-item">
+      <a href="../../index.html#scales-nlp-documentation"
+         class="nav-link ">
+         Overview
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../../index.html#scales-nlp-documentation"
+         class="nav-link ">
+         Litigation Ontology
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../../index.html#scales-nlp-documentation"
+         class="nav-link  router-link-active">
+         Package Reference
+      </a>
+    </div>
+  
+
+
+
+            
+          </navlinks><div id="searchbox" class="searchbox" role="search">
+  <div class="caption"><span class="caption-text">Quick search</span>
+    <div class="searchformwrapper">
+      <form class="search" action="../../search.html" method="get">
+        <input type="text" name="q" />
+        <input type="submit" value="Search" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div><div class="sidebar-links" role="navigation" aria-label="main navigation">
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../../index.html#scales-nlp-documentation">Overview</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../overview/start.html" class="reference internal ">Getting Started</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../overview/data.html" class="reference internal ">Collect PACER Data</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../overview/inference.html" class="reference internal ">Apply SCALES Models</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../overview/research.html" class="reference internal ">Research Tutorial</a>
+            
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../../index.html#scales-nlp-documentation">Litigation Ontology</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../ontology/events.html" class="reference internal ">Pathway Events</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../ontology/labels.html" class="reference internal ">Labels</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="../ontology/entities.html" class="reference internal ">Entities</a>
+            
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../../index.html#scales-nlp-documentation">Package Reference</a></span>
+      </p>
+      <ul class="current">
+        
+          <li class="toctree-l1 current">
+            
+              <a href="#" class="reference internal current">Pipelines</a>
+            
+
+            
+              <ul>
+                
+                  <li class="toctree-l2"><a href="#load-a-model-for-inference" class="reference internal">Load a model for inference</a></li>
+                
+                  <li class="toctree-l2"><a href="#create-custom-pipelines" class="reference internal">Create custom pipelines</a></li>
+                
+              </ul>
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="routines.html" class="reference internal ">Training Routines</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="cli.html" class="reference internal ">Command Line Interface</a>
+            
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+</div>
+        </sidebar>
+
+      <page>
+          <div class="body-header" role="navigation" aria-label="navigation">
+  
+  <ul class="breadcrumbs">
+    <li><a href="../../index.html">Docs</a> &raquo;</li>
+    
+    <li>Pipelines</li>
+  </ul>
+  
+
+  <ul class="page-nav">
+  <li class="prev">
+    <a href="../ontology/entities.html"
+       title="previous chapter">← Entities</a>
+  </li>
+  <li class="next">
+    <a href="routines.html"
+       title="next chapter">Training Routines →</a>
+  </li>
+</ul>
+  
+</div>
+<hr>
+          <div class="content" role="main" v-pre>
+            
+  <section id="pipelines">
+<h1>Pipelines<a class="headerlink" href="#pipelines" title="Permalink to this heading">¶</a></h1>
+<section id="load-a-model-for-inference">
+<h2>Load a model for inference<a class="headerlink" href="#load-a-model-for-inference" title="Permalink to this heading">¶</a></h2>
+<p>You can use the <code class="docutils literal notranslate"><span class="pre">pipeline</span></code> function to load a model for inference by its name.  If you wish to generic Hugging Face model provide the name of a task as the pipeline name along with the <code class="docutils literal notranslate"><span class="pre">model_name</span></code> argument for the model you wish to load.  If the model is private, provide your authentication token with the <code class="docutils literal notranslate"><span class="pre">auth_token</span></code> argument or, alternatively, you can cache your token by running the <code class="docutils literal notranslate"><span class="pre">scales-nlp</span> <span class="pre">configure</span></code> from command line and instead just use <code class="docutils literal notranslate"><span class="pre">auth_token=True</span></code>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="scales_nlp.pipelines.pipeline">
+<span class="sig-prename descclassname"><span class="pre">pipelines.</span></span><span class="sig-name descname"><span class="pre">pipeline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scales_nlp.pipelines.pipeline" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load a pipeline for a given task.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pipeline_name</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – Name of the pipeline to load</p></li>
+<li><p><strong>model_name</strong> – (str, optional) If using a generic task pipeline, must specify a Hugging Face model name</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#scales_nlp.pipelines.BasePipeline" title="scales_nlp.pipelines.BasePipeline"><code class="xref py py-class docutils literal notranslate"><span class="pre">BasePipeline</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="create-custom-pipelines">
+<h2>Create custom pipelines<a class="headerlink" href="#create-custom-pipelines" title="Permalink to this heading">¶</a></h2>
+<p>You can extend the <code class="docutils literal notranslate"><span class="pre">BasePipeline</span></code> class to create your own inference pipelines.  See the <code class="docutils literal notranslate"><span class="pre">ClassificationPipeline</span></code>, <code class="docutils literal notranslate"><span class="pre">MultiLabelClassificationPipeline</span></code>, <code class="docutils literal notranslate"><span class="pre">TokenClassificationPipeline</span></code>, and <code class="docutils literal notranslate"><span class="pre">SentenceEncodingPipeline</span></code> for examples.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="scales_nlp.pipelines.BasePipeline">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">scales_nlp.pipelines.</span></span><span class="sig-name descname"><span class="pre">BasePipeline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">512</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_auth_token</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scales_nlp.pipelines.BasePipeline" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for all pipelines.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="scales_nlp.pipelines.BasePipeline.place_on_device">
+<span class="sig-name descname"><span class="pre">place_on_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scales_nlp.pipelines.BasePipeline.place_on_device" title="Permalink to this definition">¶</a></dt>
+<dd><p>Method for placing models and tensors on the correct device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>obj</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code>]) – Object to place on device</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code>]</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Object on device</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="scales_nlp.pipelines.BasePipeline.get_model_name">
+<span class="sig-name descname"><span class="pre">get_model_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scales_nlp.pipelines.BasePipeline.get_model_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Trivial method for getting the model name. Pipelines that rely on a specific model should override this method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>model_name</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – Name of the model</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Updated of the model</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="scales_nlp.pipelines.BasePipeline.process_inputs">
+<span class="sig-name descname"><span class="pre">process_inputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">examples</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scales_nlp.pipelines.BasePipeline.process_inputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook for processing inputs before tokenization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>examples</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]) – Input examples</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Processed inputs</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="scales_nlp.pipelines.BasePipeline.process_predictions">
+<span class="sig-name descname"><span class="pre">process_predictions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">examples</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictions</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scales_nlp.pipelines.BasePipeline.process_predictions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook for processing predictions before returning them.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>examples</strong> – Input examples</p></li>
+<li><p><strong>predictions</strong> – Predictions from model</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Processed predictions</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="scales_nlp.pipelines.BasePipeline.tokenize">
+<span class="sig-name descname"><span class="pre">tokenize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">texts</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scales_nlp.pipelines.BasePipeline.tokenize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tokenize method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>texts</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]) – List of texts to tokenize</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tokenized inputs</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="scales_nlp.pipelines.BasePipeline.generate_batches">
+<span class="sig-name descname"><span class="pre">generate_batches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">examples</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scales_nlp.pipelines.BasePipeline.generate_batches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate batches of examples.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>examples</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>) – List of examples</p></li>
+<li><p><strong>batch_size</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Batch size</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>]</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of batched examples</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="scales_nlp.pipelines.BasePipeline.load_model">
+<span class="sig-name descname"><span class="pre">load_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#scales_nlp.pipelines.BasePipeline.load_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the model. Must be implemented by all pipelines.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Loaded Hugging Face model</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="scales_nlp.pipelines.BasePipeline.batch_predict">
+<span class="sig-name descname"><span class="pre">batch_predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scales_nlp.pipelines.BasePipeline.batch_predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict on a batch of inputs. Must be implemented by all pipelines.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>inputs</strong> – Batch of inputs</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Predictions</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="scales_nlp.pipelines.BasePipeline.require_auth_token">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">require_auth_token</span></span><a class="headerlink" href="#scales_nlp.pipelines.BasePipeline.require_auth_token" title="Permalink to this definition">¶</a></dt>
+<dd><p>Override this property to force pipeline to require an auth token.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+          </div>
+          <div class="page-nav">
+            <div class="inner"><ul class="page-nav">
+  <li class="prev">
+    <a href="../ontology/entities.html"
+       title="previous chapter">← Entities</a>
+  </li>
+  <li class="next">
+    <a href="routines.html"
+       title="next chapter">Training Routines →</a>
+  </li>
+</ul><div class="footer" role="contentinfo">
+      &#169; Copyright 2023, SCALES-OKN.
+</div>
+            </div>
+          </div>
+      </page>
+    </div></div>
+    
+    
+  </body>
+</html>
