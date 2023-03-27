@@ -64,9 +64,10 @@ def parse(court):
 
 @click.command()
 @click.option('--batch-size', default=8, help='Batch size for model predictons')
-def predict(batch_size):
+@click.option('--reset/-no-reset', default=False, help='Overwrite existing predictions')
+def predict(batch_size, reset):
     """Apply docket classification model to PACER data in the PACER_DIR."""
-    scales_nlp.utils.update_classifier_predictions(batch_size)
+    scales_nlp.utils.update_classifier_predictions(batch_size, reset)
 
 
 @click.command()
