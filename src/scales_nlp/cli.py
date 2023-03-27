@@ -31,7 +31,7 @@ def docs(build):
         if build_dir.exists():
             shutil.rmtree(docs_dir / 'build')
         os.system(f'(cd {docs_dir} && make html)')
-    os.system(f'(cd {build_dir} && python -m http.server 8002)')
+    os.system(f'(cd {build_dir} && python -m http.server 8003)')
 
 
 @click.command()

@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Dict
 import os
 import pandas as pd
 import requests
@@ -34,7 +34,7 @@ def divisions() -> List[str]:
     return DIVISIONS
 
 
-def load_json(path: Union[str, Path]) -> dict:
+def load_json(path: Union[str, Path]) -> Dict:
     with open(str(path), 'r') as f:
         return json.loads(f.read())
 
@@ -53,7 +53,7 @@ def case_path(ucid: str) -> Path:
     return config['PACER_DIR'] / court / 'json' / year / filename
 
 
-def load_case(ucid: str) -> dict:
+def load_case(ucid: str) -> Dict:
     path = case_path(ucid)
     return load_json(path)
 
@@ -69,7 +69,7 @@ def load_case_classifier_labels(ucid: str) -> List:
         return []
 
 
-def load_court(court: str) -> dict:
+def load_court(court: str) -> Dict:
     courts = COURTS[COURTS['abbreviation'] == court]
     if len(courts) == 0:
         raise ValueError(f'Court {court} not found')
@@ -77,7 +77,7 @@ def load_court(court: str) -> dict:
 
 
 def convert_default_binary_outputs(
-    predictions: List[Union[str, dict[str, float], bool]]
+    predictions: List[Union[str, Dict[str, float], bool]]
 ) -> List[Union[float, bool]]:
     if isinstance(predictions[0], str):
         converted_predictions = [prediction == 'LABEL_1' for prediction in predictions]
@@ -147,7 +147,7 @@ def update_classifier_predictions(batch_size=8, reset=False):
 
 
 
-def html_spans(texts: List[str], spans: List[dict], info: List[List[str]]=None, label2color: dict={}):
+def html_spans(texts: List[str], spans: List[Dict], info: List[List[str]]=None, label2color: Dict={}):
     html = f"""
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN" crossorigin="anonymous"></script>
@@ -172,7 +172,7 @@ def html_spans(texts: List[str], spans: List[dict], info: List[List[str]]=None, 
     return html
 
 
-def generate_label_studio_data(texts: str, spans: List[dict]=None):
+def generate_label_studio_data(texts: str, spans: List[Dict]=None):
     data = []
     for i in range(len(texts)):
         row = {'data': {'text': texts[i]}}

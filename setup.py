@@ -17,18 +17,19 @@ setup(
 	install_requires=[
 		'configuration-maker',
 		'datasets',
-		'faiss-cpu',
+		'evaluate',
 		'numpy<1.23.0',
 		'pacer-tools',
 		'pandas',
 		'pathlib',
 		'protobuf<3.21.0',
 		'sentencepiece',
+		'scikit-learn',
 		'toolz',
 		'tqdm',
 		'transformers',
 	],
-
+	
 	data_files=[
         ('scales_nlp', glob('src/scales_nlp/data/*')),
     ],
