@@ -94,7 +94,7 @@ keys = [
 		name='GRADIENT_ACCUMULATION_STEPS',
 		group='train-args',
 		key_type='int',
-		default=2,
+		default=4,
 		description='Number of steps to accumulate gradients before performing a backward pass',
 	),
 

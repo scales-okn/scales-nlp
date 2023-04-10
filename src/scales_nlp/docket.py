@@ -1,5 +1,6 @@
 import pandas as pd
 from copy import deepcopy
+from fuzzywuzzy import fuzz
 import scales_nlp
 
 class Docket():
@@ -126,7 +127,13 @@ class Docket():
             if 'consent decree resolution' in entry.labels:
                 return 'consent decree'
 
+            # add voluntary dismissal settlement
+
+            if 'voluntary dismissal resolution' in entry.labels:
+                return 'voluntary dismissal'
+
             if any(x in entry.labels for x in [
+                'settlement reached',
                 'consent judgment','settlement agreement',
                 'motion for settlement', 'notice of settlement', 'stipulation for settlement', 
             ]):
@@ -136,7 +143,7 @@ class Docket():
                 return 'voluntary dismissal'
             
             if 'bilateral' in entry.labels and any(x in entry.labels for x in [
-                'motion for judgment','motion to dismiss',
+                'motion for judgment', 'motion to dismiss',
                 'notice of dismissal', 'notice of voluntary dismissal', 'stipulation for judgment', 
                 'stipulation of dismissal', 'stipulation for voluntary dismissal',
             ]):
@@ -144,9 +151,6 @@ class Docket():
                     return 'voluntary dismissal'
                 else:
                     return 'settlement'
-
-            if 'party resolution' in entry.labels:
-                return 'party resolution'
 
             if 'granting motion to dismiss' in entry.labels:
                 return 'rule 12b'
@@ -185,7 +189,39 @@ class Docket():
             nos_code = nos_code.split()[0]
             if nos_code.isdigit():
                 return int(nos_code)
-        
+
+
+    def get_party_names(self, party_type=None):
+        names = []
+        for party in self.header['parties']:
+            if party_type is None or party['party_type'] == party_type:
+                names.append(party['name'])
+        return names
+
+    @property
+    def plaintiff_names(self):
+        return self.get_party_names(party_type='plaintiff')
+    
+    @property
+    def defendant_names(self):
+        return self.get_party_names(party_type='defendant')
+
+    def get_attorney_names(self, party_type=None):
+        names = []
+        for party in self.header['parties']:
+            if party_type is None or party['party_type'] == party_type:
+                for attorney in party['counsel']:
+                    names.append(attorney['name'])
+        return names
+
+    @property
+    def plaintiff_attorney_names(self):
+        return self.get_attorney_names(party_type='plaintiff')
+    
+    @property
+    def defendant_attorney_names(self):
+        return self.get_attorney_names(party_type='defendant')
+
     @staticmethod
     def from_json(case_json, label_json=None, recap=False):
         if not recap:
@@ -255,7 +291,6 @@ class DocketEntry():
         self._labels = self.labels + [label]
         self._labels = self.get_labels(update=True)
 
-
     def remove_label(self, label):
         self._labels = [x for x in self.labels if x != label]
         self._labels = self.get_labels(update=True)
@@ -284,6 +319,58 @@ class DocketEntry():
             self._labels = deepcopy(self.classifier_labels)
             update = True
         if update:
+            text = self.text.lower()
+            if 'trial' in self._labels:
+                if 'jury trial' in text and not any(y in text for y in ['non jury trial', 'non-jury trial']):
+                    self._labels.append('jury trial')
+                if 'bench trial' in text:
+                    self._labels.append('bench trial')
+            if '[transferred from' in text:
+                self._labels.append('transferred entry')
+
+            # change motion type from 12b to 41a if strong 41 language in motion
+            if 'dismissing motion' in self._labels:
+                if any(x in text for x in ['voluntar', '41(a)', '41a']):
+                    self._labels.append('motion for voluntary dismissal')
+                    if 'motion to dismiss' in self._labels:
+                        self._labels.remove('motion to dismiss')
+
+            # change related motion type from 12b to 41a if strong 41 language in order
+            if 'voluntary dismissal resolution' in self._labels:
+                for span in self.spans:
+                    if span['entity'] == 'GRANT' and 'related_entry' in span:
+                        related_entry = self.docket[span['related_entry']]
+                        if 'dismissing motion' in related_entry.labels:
+                            related_entry.add_label('motion for voluntary dismissal')
+                            if 'motion to dismiss' in related_entry.labels:
+                                related_entry.remove_label('motion to dismiss')
+
+            # change order type from 12b to 41a if strong 41 language in related motion
+            if 'granting motion to dismiss' in self._labels and 'voluntary dismissal resolution' not in self._labels:
+                for span in self.spans:
+                    if span['entity'] == 'GRANT' and 'related_entry' in span:
+                        related_entry = self.docket[span['related_entry']]
+                        if 'motion for voluntary dismissal' in related_entry.labels:
+                            self._labels.append('voluntary dismissal resolution')
+            
+            # if order not VD, is granting MTD, and does not have strong 12b language, then if related motion is plaintiff or multi-filed cahnge to 41a
+            if 'granting motion to dismiss' in self._labels and 'voluntary dismissal resolution' not in self._labels:
+                mtd_terms = [
+                    '12b', '12(b)', 'failure to state a claim', 'service of process', 'insufficiency of process', 'insufficient process',
+                    'personal jurisdiction', 'subject matter jurisdiction'
+                ]
+                if not any(x in text for x in mtd_terms):
+                    for span in self.spans:
+                        if span['entity'] == 'GRANT' and 'related_entry' in span:
+                            related_entry = self.docket[span['related_entry']]
+                            if 'dismissing motion' in related_entry.labels:
+                                if not any(x in related_entry.text.lower() for x in mtd_terms):
+                                    if related_entry.filed_by in ['plaintiff', 'multi']:
+                                        related_entry.add_label('motion for voluntary dismissal')
+                                        if 'motion to dismiss' in related_entry.labels:
+                                            related_entry.remove_label('motion to dismiss')
+                                        self._labels.append('voluntary dismissal resolution')
+
             self._labels = list(sorted(list(set(self._labels))))
         return self._labels
     
@@ -295,6 +382,9 @@ class DocketEntry():
         if update:
             spans = []
             for span in self._spans:
+                # fix this in the models
+                span['entity'] = span['entity'].upper().replace(' ', '_')
+
                 if span['entity'] in ['TRANSFER_TO', 'TRANSFER_FROM']:
                     courts = scales_nlp.courts()
                     states = [x for x in scales_nlp.states() if x.lower() in span['text'].lower()]
@@ -310,6 +400,28 @@ class DocketEntry():
                         span['court'] = 'same'
                     else:
                         span['court'] = 'unknown'
+                elif span['entity'] == 'ENTERED_BY':
+                    for name in self.docket.plaintiff_names + self.docket.plaintiff_attorney_names:
+                        if fuzz.token_set_ratio(span['text'], name) > 80:
+                            span['party_type'] = 'plaintiff'
+                            span['party'] = name
+                            break
+                    for name in self.docket.defendant_names + self.docket.defendant_attorney_names:
+                        if fuzz.token_set_ratio(span['text'], name) > 80:
+                            span['party_type'] = 'defendant'
+                            span['party'] = name
+                            break
+                elif span['entity'] in ['GRANT', 'DENY', 'MOOT', 'PARTIAL']:
+                    for edge in self.edges:
+                        if edge[-1]['end'] == span['end']:
+                            span['related_entry'] = edge[1]
+                            break
+                    if 'related_entry' not in span:
+                        if span['text'].isdigit():
+                            for entry in self.docket:
+                                if entry.entry_number == int(span['text']):
+                                    span['related_entry'] = entry.row_number
+                                    break
                 spans.append(span)
             self._spans = list(sorted(sorted(spans, key=lambda x: x['entity']), key=lambda x: x['start']))
         return self._spans
@@ -321,6 +433,22 @@ class DocketEntry():
     @property
     def spans(self):
         return self.get_spans()
+    
+    @property
+    def filed_by(self):
+        filing_party = {'defendant': 0, 'plaintiff': 0}
+        for span in self.spans:
+            if 'party_type' in span:
+                if span['party_type'] in filing_party:
+                    filing_party[span['party_type']] += 1
+        if filing_party['defendant'] + filing_party['plaintiff'] == 0:
+            return None
+        elif filing_party['defendant'] == filing_party['plaintiff']:
+            return 'multi'
+        elif filing_party['defendant'] > filing_party['plaintiff']:
+            return 'defendant'
+        elif filing_party['defendant'] < filing_party['plaintiff']:
+            return 'plaintiff'
     
 
 class Event():

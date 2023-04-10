@@ -32,6 +32,12 @@ labels = {
         "description": "",
     },
 
+    "transferred entry": {
+        "type": "attribute",
+        "description": "",
+    },
+
+
     "unopposed": {
         "type": "attribute",
         "description": "",
@@ -200,6 +206,16 @@ labels = {
     },
 
     "sentence": {
+        "type": "court_action",
+        "description": "",
+    },
+
+    "settlement reached": {
+        "type": "court_action",
+        "description": "",
+    },
+
+    "voluntary dismissal resolution": {
         "type": "court_action",
         "description": "",
     },
