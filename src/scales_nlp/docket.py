@@ -125,33 +125,47 @@ class Docket():
                 return 'rule 68'
 
             if 'consent decree resolution' in entry.labels:
+                # entries that are consent decrees
+                # orders granting motions for consent decrees
+                # orders disposing of the case via consent decree
                 return 'consent decree'
 
-            # add voluntary dismissal settlement
-
-            if 'voluntary dismissal resolution' in entry.labels:
-                return 'voluntary dismissal'
+            is_vd, is_settlement = False, False
 
             if any(x in entry.labels for x in [
-                'settlement reached',
-                'consent judgment','settlement agreement',
-                'motion for settlement', 'notice of settlement', 'stipulation for settlement', 
+                'voluntary dismissal resolution', 
+                # captures notices of dismissal, stipulations of dismissal
+                # orders granting on the basis of notices / stipulation of dismissal
+                # orders disposing of cases via 'voluntary dismissal' or rule 41(a)
+                'stipulation of dismissal', # entries that are stipulations of dismissal (redundant)
+                'notice of dismissal', # entries that are notices of dismissal (redundant)
+                'notice of voluntary dismissal', # entries that are notices of voluntary dismissal (redundant)
             ]):
+                is_vd = True
+
+            if is_vd and 'dismissed with prejudice' in entry.labels:
+                is_settlement = True
+
+            if any(x in entry.labels for x in [
+                'settlement reached', # catch all label for any indicator that the parties settled using the language of settlement
+                'consent judgment', # entries that are consent judgments
+                'consent judgment resolution', # orders granting motions for or disposing of case via consent judgments
+                'settlement agreement', # entries that are settlement agreements
+                'motion for settlement', # entries that are motions for settlement
+                'notice of settlement', # entries that are notices of settlement
+                'stipulation for settlement', # entries that are stipulations for settlement
+            ]):
+                is_settlement = True
+
+            if is_vd and is_settlement:
+                return 'voluntary dismissal (settlement)'
+            elif is_vd:
+                return 'voluntary dismissal'
+            elif is_settlement:
                 return 'settlement'
 
-            if 'notice of voluntary dismissal' in entry.labels and 'bilateral' not in entry.labels:
-                return 'voluntary dismissal'
-            
-            if 'bilateral' in entry.labels and any(x in entry.labels for x in [
-                'motion for judgment', 'motion to dismiss',
-                'notice of dismissal', 'notice of voluntary dismissal', 'stipulation for judgment', 
-                'stipulation of dismissal', 'stipulation for voluntary dismissal',
-            ]):
-                if any(x in entry.labels for x in ['unopposed', 'stipulation']) and not 'dismiss with prejudice' in entry.labels:
-                    return 'voluntary dismissal'
-                else:
-                    return 'settlement'
-
+            # what to do with motion / stipulation for judgment (prev included if bilateral)
+   
             if 'granting motion to dismiss' in entry.labels:
                 return 'rule 12b'
             
@@ -272,7 +286,7 @@ class Docket():
 class DocketEntry():
     def __init__(
         self, row_number, entry_number=None, date_filed=None, text=None, 
-        documents=None, edges=None, classifier_labels=None, classifier_spans=None, docket=None,
+        documents=[], edges=[], classifier_labels=None, classifier_spans=None, docket=None,
     ):
         self.row_number = row_number
         self.entry_number = entry_number
@@ -350,7 +364,7 @@ class DocketEntry():
                 for span in self.spans:
                     if span['entity'] == 'GRANT' and 'related_entry' in span:
                         related_entry = self.docket[span['related_entry']]
-                        if 'motion for voluntary dismissal' in related_entry.labels:
+                        if any(x in related_entry.labels for x in ['motion for voluntary dismissal', 'stipulation of dismissal', 'notice of dismissal']):
                             self._labels.append('voluntary dismissal resolution')
             
             # if order not VD, is granting MTD, and does not have strong 12b language, then if related motion is plaintiff or multi-filed cahnge to 41a
@@ -384,22 +398,24 @@ class DocketEntry():
             for span in self._spans:
                 # fix this in the models
                 span['entity'] = span['entity'].upper().replace(' ', '_')
-
                 if span['entity'] in ['TRANSFER_TO', 'TRANSFER_FROM']:
-                    courts = scales_nlp.courts()
-                    states = [x for x in scales_nlp.states() if x.lower() in span['text'].lower()]
-                    divisions = [x.lower() for x in scales_nlp.divisions() if x.lower() in span['text'].lower()]
-                    if len(states) > 0:
-                        courts = courts[courts['state'].isin(states)]
-                    if len(divisions) > 0:
-                        courts = courts[courts['cardinal'].str.lower().isin(divisions)]
-                    possible_matches = courts['abbreviation'].unique()
-                    if self.docket.court['abbreviation'] not in possible_matches:
-                        span['court'] = 'different'
-                    elif len(possible_matches) == 1 and possible_matches[0] == self.docket.court['abbreviation']:
-                        span['court'] = 'same'
-                    else:
+                    if self.docket.court is None:
                         span['court'] = 'unknown'
+                    else:
+                        courts = scales_nlp.courts()
+                        states = [x for x in scales_nlp.states() if x.lower() in span['text'].lower()]
+                        divisions = [x.lower() for x in scales_nlp.divisions() if x.lower() in span['text'].lower()]
+                        if len(states) > 0:
+                            courts = courts[courts['state'].isin(states)]
+                        if len(divisions) > 0:
+                            courts = courts[courts['cardinal'].str.lower().isin(divisions)]
+                        possible_matches = courts['abbreviation'].unique()
+                        if self.docket.court['abbreviation'] not in possible_matches:
+                            span['court'] = 'different'
+                        elif len(possible_matches) == 1 and possible_matches[0] == self.docket.court['abbreviation']:
+                            span['court'] = 'same'
+                        else:
+                            span['court'] = 'unknown'
                 elif span['entity'] == 'ENTERED_BY':
                     for name in self.docket.plaintiff_names + self.docket.plaintiff_attorney_names:
                         if fuzz.token_set_ratio(span['text'], name) > 80:

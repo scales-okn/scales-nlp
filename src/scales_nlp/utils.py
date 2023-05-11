@@ -47,15 +47,19 @@ def get_ucid_components(ucid: str) -> Tuple[str, str, str]:
     return court, docket_number, office_number, year
 
 
-def case_path(ucid: str) -> Path:
+def case_path(ucid: str, html: bool=False) -> Path:
+    file_type = 'html' if html else 'json'
     court, docket_number, _, year = get_ucid_components(ucid)
-    filename = docket_number.replace(':', '-') + '.json'
-    return config['PACER_DIR'] / court / 'json' / year / filename
+    filename = docket_number.replace(':', '-') + '.' + file_type
+    return config['PACER_DIR'] / court / file_type / year / filename
 
 
-def load_case(ucid: str) -> Dict:
-    path = case_path(ucid)
-    return load_json(path)
+def load_case(ucid: str, html: bool=False) -> Dict:
+    path = case_path(ucid, html)
+    if html:
+        return path.read_text()
+    else:
+        return load_json(path)
 
 
 def load_case_classifier_labels(ucid: str) -> List:
@@ -72,7 +76,8 @@ def load_case_classifier_labels(ucid: str) -> List:
 def load_court(court: str) -> Dict:
     courts = COURTS[COURTS['abbreviation'] == court]
     if len(courts) == 0:
-        raise ValueError(f'Court {court} not found')
+        print(f'Court {court} not found')
+        return None
     return courts.iloc[0].to_dict()
 
 
