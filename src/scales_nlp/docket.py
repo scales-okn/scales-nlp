@@ -70,9 +70,7 @@ class Docket():
         added_dispositive_events = []
         for event in reversed(dispositive_events):
             add_event = False
-            if event.name not in ['transfer', 'case dismissed']:
-                add_event = True
-            elif event.name == 'transfer':
+            if event.name == 'transfer':
                 if len(added_dispositive_events) == 0 and (len(self) - event.entry.row_number) < min([(len(self) // 2) - 1, 10]):
                     event.name = 'outbound transfer'
                     event.entry.add_label('outbound transfer')
@@ -82,6 +80,11 @@ class Docket():
             elif event.name == 'case dismissed':
                 if len(added_dispositive_events) == 0 and all(x.name == 'case dismissed' for x in dispositive_events):
                     add_event = True
+            elif event.name == 'admin closing':
+                if len(added_dispositive_events) == 0 and all(x.name in ['case dismissed', 'admin closing'] for x in dispositive_events):
+                    add_event = True
+            else:
+                add_event = True
 
             if add_event:
                 self.events.append(event)
@@ -101,17 +104,15 @@ class Docket():
             if 'sentence' in entry.labels:
                 return 'sentence'
                 
-            if 'trial' in entry.labels or 'verdict' in entry.labels:
-                trial_label = 'trial'
+            ffc = 'findings of fact' in entry.labels and 'conclusions' in entry.text.lower()
+            if 'trial' in entry.labels or 'verdict' in entry.labels or ffc:
+                trial_label = 'other trial'
                 if 'bench trial' in entry.labels:
                     trial_label = 'bench trial'
                 elif 'jury trial' in entry.labels:
                     trial_label = 'jury trial'
                 return trial_label
-            
-            if 'findings of fact' in entry.labels and 'conclusions' in entry.text.lower():
-                return 'findings of fact and conclusions'
-            
+                
             if 'remand resolution' in entry.labels:
                 return 'remand'
             
@@ -334,6 +335,15 @@ class DocketEntry():
             update = True
         if update:
             text = self.text.lower()
+
+            # add settlement label if bilateral dismissal entry
+            if any(x in self._labels for x in ['judgment', 'order', 'case dismissed']):
+                first_words = ' '.join(text.split()[:7])
+                if 'dismiss' in first_words:
+                    if any([x in first_words for x in ['agree', 'consent']]):
+                        self._labels.append('settlement reached')
+
+            # jury / bench trial keyword conditions
             if 'trial' in self._labels:
                 if 'jury trial' in text and not any(y in text for y in ['non jury trial', 'non-jury trial']):
                     self._labels.append('jury trial')
@@ -341,6 +351,30 @@ class DocketEntry():
                     self._labels.append('bench trial')
             if '[transferred from' in text:
                 self._labels.append('transferred entry')
+
+            # override consent decree and consent judgment labels if related to forfeiture or forclosure
+            if any(x in text for x in [' forfeit', ' forclos']):
+                for x in ['consent decree', 'consent decree resolution', 'consent judgment', 'consent judgment resolution']:
+                    if x in self._labels:
+                        self._labels.remove(x)
+            
+            # only include plea if neither a not guilty arraignment or a judgment
+            # add not guilty and guilty variations of plea label
+            if 'plea' in self._labels:
+                if 'judgment' in self._labels:
+                    self._labels.remove('plea')
+                else:
+                    plea_text = text.replace('rearraign', '').replace('re-arraign', '').replace('re arraign', '')
+                    if 'arraign' in plea_text and 'not guilty' in plea_text:
+                        self._labels.remove('plea')
+                    else:
+                        if 'not guilty' in plea_text:
+                            self._labels.append('not guilty plea')
+                            
+                        plea_text = plea_text.replace('not guilty', '')
+                        if 'guilty' in plea_text:
+                            self._labels.append('guilty plea')
+                    
 
             # change motion type from 12b to 41a if strong 41 language in motion
             if 'dismissing motion' in self._labels:

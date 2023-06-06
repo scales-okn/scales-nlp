@@ -119,6 +119,11 @@ labels = {
         "description": "",
     },
 
+    "plea": {
+        "type": "entry_type",
+        "description": "",
+    },
+
     "plea agreement": {
         "type": "entry_type",
         "description": "",
