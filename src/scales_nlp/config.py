@@ -145,6 +145,14 @@ keys = [
 		default=None,
 		description='Path to use (if different) for label data',
 	),
+
+	ConfigKey(
+		name='JUDGE_DATA_DIR',
+		group='dev',
+		key_type='path',
+		default=None,
+		description='Path to use (if different) for judge data',
+	),
 ]
 
 

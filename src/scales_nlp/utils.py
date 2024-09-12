@@ -16,6 +16,7 @@ PACKAGE_DIR = Path(__file__).parent
 PACKAGE_DATA_DIR = PACKAGE_DIR / 'data'
 
 LABEL_DATA_DIR = config['LABEL_DATA_DIR'] if config['LABEL_DATA_DIR'] is not None else config['PACER_DIR']
+JUDGE_DATA_DIR = config['JUDGE_DATA_DIR'] if config['JUDGE_DATA_DIR'] is not None else config['PACER_DIR']
 
 COURTS = pd.read_csv(PACKAGE_DATA_DIR / 'courts.csv')
 STATES = COURTS['state'].dropna().unique()
@@ -71,6 +72,15 @@ def load_case_classifier_labels(ucid: str) -> List:
     else:
         print('labels not computed for {}'.format(ucid))
         return []
+
+def load_case_judge_labels(ucid: str) -> pd.DataFrame:
+    filename = ucid.replace(';;', '-').replace(':', '-') + '.jsonl'
+    path = JUDGE_DATA_DIR / court / year / filename
+    if path.exists():
+        return pd.read_json(path, lines=True)
+    else:
+        print('labels not computed for {}'.format(ucid))
+        return pd.DataFrame()
 
 
 def load_court(court: str) -> Dict:

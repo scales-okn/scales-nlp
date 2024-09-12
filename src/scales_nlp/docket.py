@@ -1,23 +1,142 @@
+import re
+import json
 import pandas as pd
 from copy import deepcopy
+from itertools import chain
 from fuzzywuzzy import fuzz
 import scales_nlp
 
+label_remappings = {
+    'admin closing': ('attribute_admin_closing',),
+    'arbitration motion': ('motion', 'attribute_motion_for_arbitration'),
+    'bench trial': ('trial', 'attribute_trial_bench'),
+    'case dismissed': ('attribute_dismissal_other',),
+    'case opened in error': ('attribute_case_opened_in_error',),
+    'default judgment': ('attribute_default_judgment',),
+    'default judgment resolution': ('attribute_default_judgment',),
+    'dismiss with prejudice': ('attribute_dismiss_with_prejudice',),
+    'dismiss without prejudice': ('attribute_dismiss_without_prejudice',),
+    'dismissing motion': ('motion', 'attribute_motion_for_dismissal_other'),
+    'error': ('attribute_error',),
+    'findings of fact': ('findings_of_fact', 'attribute_dispositive'),
+    'granting motion for summary judgment': ('attribute_granting_motion_for_summary_judgment', 'attribute_dispositive'),
+    'granting motion to dismiss': ('attribute_granting_motion_to_dismiss', 'attribute_dispositive'),
+    'guilty plea': ('plea', 'attribute_plea_guilty'),
+    'inbound transfer': ('attribute_transfer_inbound',),
+    'jury trial': ('trial', 'attribute_trial_jury'),
+    'not guilty plea': ('plea', 'attribute_plea_not_guilty'),
+    'notice of removal': ('removal',),
+    'other trial': ('trial', 'attribute_trial_other'),
+    'outbound transfer': ('attribute_transfer_outbound',),
+    'proposed': ('attribute_proposed',),
+    'remand': ('attribute_remand',),
+    'rule 68': ('settlement', 'attribute_settlement_rule_68'),
+    'transfer': ('attribute_transfer_unknown',),
+    'transferred entry': ('attribute_transferred_entry',),
+    'trial': ('trial', 'attribute_trial_other'),
+    'verdict': ('verdict', 'attribute_dispositive'),
+    'voluntary dismissal': ('attribute_voluntary_dismissal',),
+    'voluntary dismissal (settlement)': ('settlement', 'attribute_dispositive')
+}
+labels_to_delete = (
+    'agreement reached',
+    'consent decree resolution',
+    'consent judgment',
+    'consent judgment resolution',
+    'remand resolution',
+    'rule 12b',
+    'rule 68 resolution',
+    'settlement agreement',
+    'settlement reached',
+    'summary judgment',
+    'voluntary dismissal resolution'
+)
+labels_to_change_to_order = (
+    'admin closing',
+    'case dismissed',
+    'default judgment',
+    'granting motion for summary judgment',
+    'granting motion to dismiss',
+    'inbound transfer',
+    'outbound transfer',
+    'remand'
+)
+labels_auto_dispositive = (
+    'attribute_admin_closing',
+    'attribute_default_judgment',
+    'findings_of_fact',
+    'attribute_granting_motion_for_summary_judgment',
+    'attribute_granting_motion_to_dismiss',
+    'attribute_transfer_outbound',
+    'attribute_remand',
+    'sentence',
+    'settlement',
+    'verdict',
+    'attribute_voluntary_dismissal'
+)
+labels_to_change_to_settlement = (
+    'agreement reached',
+    'consent decree',
+    'consent judgment',
+    'notice of consent',
+    'notice of dismissal',
+    'notice of settlement',
+    'notice of voluntary dismissal',
+    'settlement agreement',
+    'settlement reached',
+    'stipulation for judgment',
+    'stipulation for settlement',
+    'stipulation of dismissal'
+)
+deceptive_nonmotion_labels = (
+    'granting motion for summary judgment',
+    'granting motion to dismiss',
+    'notice of motion'
+)
+event_labels = (
+    'answer',
+    'arrest',
+    'brief',
+    'complaint',
+    'findings_of_fact',
+    'indictment',
+    'information',
+    'judgment',
+    'minute_entry',
+    'motion',
+    'notice',
+    'order',
+    'petition',
+    'plea',
+    'plea_agreement',
+    'removal',
+    'response',
+    'sentence',
+    'settlement',
+    'stipulation',
+    'summons',
+    'trial',
+    'verdict',
+    'waiver',
+    'warrant'
+)
+
 class Docket():
-    def __init__(self, ucid, header, entries=None):
+    def __init__(self, ucid, header, entries=None, judge_df=None, skip_monkey_patch=False):
         self.ucid = ucid
         self.court = scales_nlp.load_court(ucid.split(";;")[0])
         self.docket_number = ucid.split(";;")[1]
         self.header = header
         self.entries = entries
+        self.judge_df = judge_df
         self.events = []
 
         for entry in self.entries:
             entry.docket = self
         
-        self.process_events()
+        self.process_events(skip_monkey_patch)
         
-    def process_events(self):
+    def process_events(self, skip_monkey_patch):
         for entry in self:
             if 'transfer' in entry.labels:
                 for span in entry.spans:
@@ -94,10 +213,116 @@ class Docket():
         if len(self) == 0:
             self.events = [Event('admin closing', event_type='dispositive', entry=None)]
 
+        if skip_monkey_patch:
+            for entry in self:
+                if entry.event is not None:
+                    if entry.event not in self.events:
+                        entry.event = None
+            return
+
+        # monkey patch by scott, starting with event handling
         for entry in self:
             if entry.event is not None:
-                if entry.event not in self.events:
-                    entry.event = None
+                if entry.event in self.events and entry.event.name not in labels_to_delete:
+                    if entry.event.event_type == 'opening':
+                        entry.add_label_basic('attribute_opening')
+                    if entry.event.event_type == 'dispositive' and 'trial' not in entry.event.name:
+                        entry.add_label_basic('attribute_dispositive')
+                    entry.add_label_basic(entry.event.name)
+                entry.event = None
+
+            # pre-remapping changes
+            labels_old = deepcopy(entry.labels)
+            labels_and_remappings = labels_old + list(filter(None, chain.from_iterable([label_remappings.get(x) or (None,) for x in labels_old])))
+            for label in labels_old:
+                if label in labels_to_change_to_order and 'minute entry' not in labels_old:
+                    entry.add_label_basic('order')
+                    if label not in label_remappings:
+                        entry.remove_label_basic(label)
+                delete_mode = False
+                if label in labels_to_change_to_settlement:
+                    if 'case dismissed' in labels_old or 'settlement' in labels_and_remappings or label=='consent decree':
+                        entry.add_label_basic('settlement')
+                        delete_mode = True
+                    if label=='consent decree':
+                        entry.add_label_basic('attribute_settlement_consent_decree')
+                    if delete_mode:
+                        entry.remove_label_basic(label)
+                        continue
+
+                # label remapping
+                if label in label_remappings:
+                    entry.remove_label_basic(label)
+                    for label_new in label_remappings[label]:
+                        entry.add_label_basic(label_new)
+                elif label in labels_to_delete:
+                    entry.remove_label_basic(label)
+                elif any(x in label for x in ('motion', 'notice', 'petition', 'stipulation', 'waiver')):
+                    if ' ' not in label:
+                        if len([x for x in labels_old if label in x and not (label=='motion' and x in deceptive_nonmotion_labels)])==1:
+                            entry.add_label_basic(f'attribute_{label}_other')
+                    else:
+                        entry.add_label_basic(label.split(' ')[0])
+                        entry.remove_label_basic(label)
+                        entry.add_label_basic(f"attribute_{label.replace(' ','_') + ('_other' if label in ('motion for judgment', 'notice of dismissal') else '')}")
+                elif label in ('bilateral', 'unopposed'):
+                    entry.remove_label_basic(label)
+                    if not any(('settlement' in x or 'stipulation' in x) for x in labels_old):
+                        entry.add_label_basic('attribute_bilateral_unopposed')
+                elif ' ' in label:
+                    entry.remove_label_basic(label)
+                    entry.add_label_basic(label.replace(' ','_'))
+
+            # various post-remapping changes
+            if 'settlement' in entry.labels:
+                labels_to_delete_due_to_settlement = [x for x in entry.labels if 'stipulation' in x or x=='attribute_voluntary_dismissal']
+                for l in labels_to_delete_due_to_settlement:
+                    entry.remove_label_basic(l)
+            if 'settlement' in entry.labels or any('stipulation' in x for x in entry.labels):
+                entry.remove_label_basic('attribute_bilateral_unopposed')
+            if 'attribute_voluntary_dismissal' in entry.labels and 'attribute_granting_motion_to_dismiss' in entry.labels:
+                entry.remove_label_basic('attribute_granting_motion_to_dismiss')
+            if any(x in entry.labels for x in labels_auto_dispositive):
+                entry.add_label_basic('attribute_dispositive')
+                if 'attribute_dismissal_other' in entry.labels:
+                    entry.remove_label_basic('attribute_dismissal_other')
+            for label_intermediate, labels_specific in {
+                'attribute_motion_for_dismissal_other': ('attribute_motion_for_voluntary_dismissal', 'attribute_motion_to_dismiss'),
+                'attribute_motion_for_judgment_other': ('attribute_motion_for_default_judgment', 'attribute_motion_for_judgment_as_a_matter_of_law',
+                    'attribute_motion_for_judgment_on_the_pleadings', 'attribute_motion_for_summary_judgment'),
+                'attribute_notice_of_dismissal_other': ('attribute_notice_of_voluntary_dismissal',)
+            }.items():
+                if any(x in entry.labels for x in labels_specific):
+                    entry.remove_label_basic(label_intermediate)
+            for keyword,label_to_remove in (('transfer','attribute_transfer_unknown'), ('trial','attribute_trial_other')):
+                if len([x for x in entry.labels if keyword in x])>1:
+                    entry.remove_label_basic(label_to_remove)
+            if 'attribute_proposed' in entry.labels:
+                entry.remove_label_basic('attribute_dispositive')
+
+            # post-remapping judge-action logic
+            jdg_act_type = entry.detect_judge_action()
+            events_of_interest = [x for x in event_labels if x in entry.labels and x not in (
+                'order','settlement')] # i believe orders and settlements can coexist (see comment on 'consent judgment resolution' in get_dispositive_event)
+            if 'order' in entry.labels and events_of_interest:
+                entry.remove_label_basic('attribute_proposed')
+                if jdg_act_type: # accept "strong" or "weak", decline None
+                    for event in events_of_interest:
+                        for attr in [x for x in entry.labels if event in x]:
+                            entry.remove_label_basic(attr)
+                else:
+                    entry.remove_label_basic('order')
+
+            # other post-remapping multiple-event corrections
+            if 'petition' in entry.labels and 'response' in entry.labels and 'petition' not in entry.text.lower().replace("petitioner", '').replace(
+                'response to petition', '') or not entry.text.lower().split("petitioner's response")[0].split("petitioner's reply")[0]:
+                entry.remove_label_basic('petition')
+            if 'order' in entry.labels and 'order' not in entry.text.lower().replace('scheduling order due', ''):
+                entry.remove_label_basic('order')
+            problematic_settlement_text = 'due to civil action being compromised and settled'
+            if 'settlement' in entry.labels and problematic_settlement_text in entry.text.lower() and 'settl' not in entry.text.lower().replace(problematic_settlement_text, ''):
+                entry.remove_label_basic('settlement')
+
 
     def get_dispositive_event(self, entry):
         if not any(x in entry.labels for x in ['proposed', 'error']):
@@ -105,7 +330,7 @@ class Docket():
                 return 'sentence'
                 
             ffc = 'findings of fact' in entry.labels and 'conclusions' in entry.text.lower()
-            if 'trial' in entry.labels or 'verdict' in entry.labels or ffc:
+            if 'trial' in entry.labels: # or 'verdict' in entry.labels or ffc:
                 trial_label = 'other trial'
                 if 'bench trial' in entry.labels:
                     trial_label = 'bench trial'
@@ -238,7 +463,7 @@ class Docket():
         return self.get_attorney_names(party_type='defendant')
 
     @staticmethod
-    def from_json(case_json, label_json=None, recap=False):
+    def from_json(case_json, label_json=None, judge_df=None, recap=False, skip_monkey_patch=False):
         if not recap:
             entries = []
             if label_json is not None:
@@ -262,13 +487,16 @@ class Docket():
                 ucid=case_json['ucid'],
                 header=case_json,
                 entries=entries,
+                judge_df=judge_df,
+                skip_monkey_patch=skip_monkey_patch
             )
     
     @staticmethod
-    def from_ucid(ucid):
+    def from_ucid(ucid, skip_monkey_patch=False):
         case_json = scales_nlp.load_case(ucid)
         label_json = scales_nlp.load_case_classifier_labels(ucid)
-        return Docket.from_json(case_json, label_json=label_json)
+        judge_df = scales_nlp.load_case_judge_labels(ucid)
+        return Docket.from_json(case_json, label_json=label_json, judge_df=judge_df, skip_monkey_patch=skip_monkey_patch)
 
     def __iter__(self):
         for entry in sorted(self.entries, key=lambda x: x.row_number):
@@ -302,13 +530,21 @@ class DocketEntry():
         self.event = None
         self.docket = docket
     
-    def add_label(self, label):
-        self._labels = self.labels + [label]
-        self._labels = self.get_labels(update=True)
+    def add_label(self, label, update=True, no_dups=False):
+        self._labels = list(set(self.labels + [label])) if no_dups else self.labels + [label]
+        self._labels = self.get_labels(update=update)
 
-    def remove_label(self, label):
+    def remove_label(self, label, update=True):
         self._labels = [x for x in self.labels if x != label]
-        self._labels = self.get_labels(update=True)
+        self._labels = self.get_labels(update=update)
+
+    # not sure why update defaults to True, but I didn't want to change it and didn't want to pass update=False every time, so I wrote the below two functions
+
+    def add_label_basic(self, label):
+        self.add_label(label, update=False, no_dups=True)
+
+    def remove_label_basic(self, label):
+        self.remove_label(label, update=False)
 
     def to_json(self):
         return {
@@ -328,6 +564,117 @@ class DocketEntry():
             return f"<DocketEntry: {self.docket.ucid} [{self.row_number}]>"
         else:
             return f"<DocketEntry: unknown_docket [{self.row_number}]>"
+
+    def detect_judge_action(self):
+        '''
+        Determines wheter a judge took action in the course of the event described by the given docket entry.
+        output:
+            - one of 'strong' (a judge took action),
+                     'weak' (a judge was mentioned in a court-initiated action), or
+                     None (no judge was mentioned OR the action was party-initiated)
+        '''
+
+        # set up variables/constants/helpers         
+        jdata = None
+        is_strong, is_weak, is_potentially_party_initiated = False, False, False
+        date_re = r'\d{1,2}/\d{1,2}/\d{2,4}'
+        blanket_cases_strong_re = ''.join((fr'(?i)(?:electronic |paperless )?',
+            r'(?:minute (?:entry ?(?:for proceedings (?:held )?)?(?:(?:on )?{date_re} )?before|',
+            r'order (?:in chambers of|issued by))|',
+            r"(?:clerk's )?(?:minutes|notes) (?:for|of) [a-z/ ]+ before|",
+            r'(?:magistrate )?judge [a-z\., ]+: (?:electronic )?order entered)'))
+        blanket_cases_weak_re = ''.join(('(?i)(?:electronic )?(?:(?:initial|notice of) )?(?:(?:case|judge) )?(?:re)?assign(?:ed|ment)|',
+            r"(?:text only entry: )?clerk'?s notice of (?:(?:initial case|(?:magistrate )?judge) assignment|reassignment)|",
+            r'(?:magistrate )?(?:judge|hon\.) [a-z\., ]+ (?:added|assigned to case|is so designated)\.|',
+            r'case (?:referred to|opening (?:initial assignment notice|notification))|',
+            r'this case has been assigned|random assignment of magistrate judge|',
+            r'order (?:reassigning case|that this case is reassigned)|',
+            r'civil case terminated\. magistrate judge [a-z\., ]+ terminated from case\.|',
+            r'this action has been transferred|',
+            r'action required by (?:district|magistrate) judge|',
+            r'new case notes'))
+        party_keywords = ['plaintiff', 'plaintiffs', 'defendant', 'defendants', 'usa', 'united states', 'united states of america']
+        _clean_word = lambda x: x.lower().replace('.','').strip('(')
+        def _is_scheduling_entry(docket_text, span, w2):
+            if (re.match(date_re, w2) or w2 in ('am', 'pm', 'courtroom', 'chambers', 'telephone', 'tower)') or re.match(
+                r'(?i)\d*\-?[a-z]$', w2) or w2.strip('),').isnumeric() or not docket_text.lower().split(
+                'notice of motion')[0]):
+                return True
+            else:
+                return False  
+
+        # load the relevant entry data (this is a translation to the variable names as originally written in data_tools/scales_nlp)
+        ucid = self.docket.ucid
+        scales_ind = self.row_number
+        docket_text = self.text
+        judge_df = self.docket.judge_df
+
+        # load the SEL data
+        subdf = judge_df[judge_df.docket_index.eq(scales_ind)] # could be optimized if this function ends up running over entire cases
+        if not len(subdf):
+            return None
+        spans = [(subdf.at[i,'Entity_Span_Start'], subdf.at[i,'Entity_Span_End']) for i in subdf.index]
+
+        # for each judge span, take note of the two words preceding it
+        preceding_words = []
+        _clean_word = lambda x: x.lower().replace('.','').strip('(')
+        for span in spans:
+            words = docket_text[:span[0]].split()
+            i = len(words)-1
+            while i>=0 and _clean_word(words[i]) in ('the', 'judge', 'judge:', 'magistrate', 'chief', 'district', 'honorable', 'hon', 'senior', 'united', 'states', 'us'):
+                i -= 1
+            if i>=0:
+                preceding_words.append((_clean_word(words[i]), (_clean_word(words[i-1]) if i>0 else None)))
+            else:
+                preceding_words.append((None, None))
+
+        # apply blanket heuristics
+        if re.match(blanket_cases_strong_re, docket_text):
+            is_strong = True
+        elif re.match(blanket_cases_weak_re, docket_text):
+            is_weak = True
+
+        # apply per-span heuristics
+        if not is_strong:
+            for i,span in enumerate(spans):
+                w1,w2 = preceding_words[i]
+                if any((
+                    w1=='by',
+                    (w2,w1)==('order','from'),
+                    docket_text.count('.')>1 and any((re.match(fr'(?i) (?:magistrate )?judge [a-z\. ]+ on {date_re}', x) for x in (
+                        docket_text.split('.')[-2], '.'.join((docket_text.split('.')[-3], docket_text.split('.')[-2]))))))): # wow, sorry for the seven closing parentheses
+                    is_strong = True
+                    break
+                elif not is_weak and any((
+                    w1=='and', docket_text[span[1]+1:].split()[0]=='and', # connotes judge-assignment activity ("judge X and judge Y")
+                    (w2,w1)==('calendar','of'),
+                    w1=='before' and _is_scheduling_entry(docket_text, span, w2))):
+                    is_weak = True
+                elif any((
+                    w1=='to',
+                    re.match('(?i)complaint', docket_text))):
+                    is_potentially_party_initiated = True
+
+        # apply final catch-all case
+        if not is_strong and not is_weak:
+            if not jdata:
+                fdir = '/Users/thea/Downloads/temp_strat'
+                fname = ucid.replace(';;','-').replace(':','-') + '.json'
+                with open(f'{fdir}/cases/{fname}') as f:
+                    jdata = json.load(f)
+                # jdata = dtools.load_case(ucid=ucid)
+            parties = [x['name'] for x in jdata['parties']]
+            first_sentence = (re.match(r'.*?[^\. ]{2}\.', docket_text.replace('..','.')) or re.match('.*', docket_text)).group(0)
+            if not any(f'by {x.lower()}' in first_sentence.lower() for x in parties+party_keywords) and not is_potentially_party_initiated:
+                is_weak = True
+
+        # finish up
+        if is_strong:
+            return 'strong'
+        elif is_weak:
+            return 'weak'
+        else:
+            return None
 
     def get_labels(self, update=False):
         if self._labels is None:
