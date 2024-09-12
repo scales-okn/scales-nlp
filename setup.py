@@ -18,7 +18,7 @@ setup(
 		'configuration-maker',
 		'datasets',
 		'evaluate',
-		'numpy<1.23.0',
+		'numpy',
 		'pacer-tools',
 		'pandas',
 		'pathlib',
