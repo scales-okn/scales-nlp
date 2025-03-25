@@ -294,7 +294,7 @@ class Docket():
             }.items():
                 if any(x in entry.labels for x in labels_specific):
                     entry.remove_label_basic(label_intermediate)
-            for keyword,label_to_remove in (('transfer','attribute_transfer_unknown'), ('trial','attribute_trial_other')):
+            for keyword,label_to_remove in (('attribute_transfer','attribute_transfer_unknown'), ('attribute_trial','attribute_trial_other')):
                 if len([x for x in entry.labels if keyword in x])>1:
                     entry.remove_label_basic(label_to_remove)
             if 'attribute_proposed' in entry.labels:
@@ -303,7 +303,7 @@ class Docket():
             # post-remapping judge-action logic
             jdg_act_type = entry.detect_judge_action()
             events_of_interest = [x for x in event_labels if x in entry.labels and x not in (
-                'order','settlement')] # i believe orders and settlements can coexist (see comment on 'consent judgment resolution' in get_dispositive_event)
+                'order','settlement','plea')] # i believe orders and settlements can coexist (see comment on 'consent judgment resolution' in get_dispositive_event)
             if 'order' in entry.labels and events_of_interest:
                 entry.remove_label_basic('attribute_proposed')
                 if jdg_act_type: # accept "strong" or "weak", decline None
@@ -317,7 +317,7 @@ class Docket():
             if 'petition' in entry.labels and 'response' in entry.labels and 'petition' not in entry.text.lower().replace("petitioner", '').replace(
                 'response to petition', '') or not entry.text.lower().split("petitioner's response")[0].split("petitioner's reply")[0]:
                 entry.remove_label_basic('petition')
-            if 'order' in entry.labels and 'order' not in entry.text.lower().replace('scheduling order due', ''):
+            if 'order' in entry.labels and 'answer' in entry.labels and 'order' not in entry.text.lower().replace('scheduling order due', ''):
                 entry.remove_label_basic('order')
             problematic_settlement_text = 'due to civil action being compromised and settled'
             if 'settlement' in entry.labels and problematic_settlement_text in entry.text.lower() and 'settl' not in entry.text.lower().replace(problematic_settlement_text, ''):
@@ -493,8 +493,8 @@ class Docket():
     
     @staticmethod
     def from_ucid(ucid, skip_monkey_patch=False):
-        case_json = scales_nlp.load_case(ucid)
         label_json = scales_nlp.load_case_classifier_labels(ucid)
+        case_json = scales_nlp.load_case(ucid)
         judge_df = scales_nlp.load_case_judge_labels(ucid)
         return Docket.from_json(case_json, label_json=label_json, judge_df=judge_df, skip_monkey_patch=skip_monkey_patch)
 
@@ -610,6 +610,8 @@ class DocketEntry():
         judge_df = self.docket.judge_df
 
         # load the SEL data
+        if not len(judge_df):
+            return None
         subdf = judge_df[judge_df.docket_index.eq(scales_ind)] # could be optimized if this function ends up running over entire cases
         if not len(subdf):
             return None
@@ -624,9 +626,9 @@ class DocketEntry():
             while i>=0 and _clean_word(words[i]) in ('the', 'judge', 'judge:', 'magistrate', 'chief', 'district', 'honorable', 'hon', 'senior', 'united', 'states', 'us'):
                 i -= 1
             if i>=0:
-                preceding_words.append((_clean_word(words[i]), (_clean_word(words[i-1]) if i>0 else None)))
+                preceding_words.append((_clean_word(words[i]), (_clean_word(words[i-1]) if i>0 else '')))
             else:
-                preceding_words.append((None, None))
+                preceding_words.append(('', ''))
 
         # apply blanket heuristics
         if re.match(blanket_cases_strong_re, docket_text):
@@ -646,7 +648,7 @@ class DocketEntry():
                     is_strong = True
                     break
                 elif not is_weak and any((
-                    w1=='and', docket_text[span[1]+1:].split()[0]=='and', # connotes judge-assignment activity ("judge X and judge Y")
+                    w1=='and', (docket_text[span[1]+1:].split() and docket_text[span[1]+1:].split()[0]=='and'), # connotes judge-assignment activity ("judge X and judge Y")
                     (w2,w1)==('calendar','of'),
                     w1=='before' and _is_scheduling_entry(docket_text, span, w2))):
                     is_weak = True
@@ -657,15 +659,9 @@ class DocketEntry():
 
         # apply final catch-all case
         if not is_strong and not is_weak:
-            if not jdata:
-                fdir = '/Users/thea/Downloads/temp_strat'
-                fname = ucid.replace(';;','-').replace(':','-') + '.json'
-                with open(f'{fdir}/cases/{fname}') as f:
-                    jdata = json.load(f)
-                # jdata = dtools.load_case(ucid=ucid)
-            parties = [x['name'] for x in jdata['parties']]
+            parties = [(x['name'] or '') for x in self.docket.header['parties']]
             first_sentence = (re.match(r'.*?[^\. ]{2}\.', docket_text.replace('..','.')) or re.match('.*', docket_text)).group(0)
-            if not any(f'by {x.lower()}' in first_sentence.lower() for x in parties+party_keywords) and not is_potentially_party_initiated:
+            if not any(f'by {x.lower()}' in (first_sentence or '').lower() for x in parties+party_keywords) and not is_potentially_party_initiated:
                 is_weak = True
 
         # finish up
