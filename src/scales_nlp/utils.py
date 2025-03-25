@@ -74,6 +74,7 @@ def load_case_classifier_labels(ucid: str) -> List:
         return []
 
 def load_case_judge_labels(ucid: str) -> pd.DataFrame:
+    court, _, _, year = get_ucid_components(ucid)
     filename = ucid.replace(';;', '-').replace(':', '-') + '.jsonl'
     path = JUDGE_DATA_DIR / court / year / filename
     if path.exists():
