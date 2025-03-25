@@ -1,14 +1,12 @@
 from glob import glob
 from setuptools import setup, find_packages
 
-
-__version__ = '0.1.0'
 exec(open('src/scales_nlp/version.py').read())
 
  
 setup(
 	name='scales-nlp',
-	version=__version__,   
+	version='0.1.16',
 	description='',
 	url='https://github.com/scales-okn/scales-nlp',
 	author='Nathan Dahlberg',
