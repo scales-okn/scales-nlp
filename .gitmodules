@@ -1,0 +1,3 @@
+[submodule "src/scales_nlp/research_materials"]
+	path = src/scales_nlp/research_materials
+	url = https://github.com/scales-okn/Research-Materials

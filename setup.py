@@ -1,17 +1,22 @@
 from glob import glob
 from setuptools import setup, find_packages
 
+__version__ = None
 exec(open('src/scales_nlp/version.py').read())
 
  
 setup(
 	name='scales-nlp',
-	version='0.1.16',
+	version=__version__,
 	description='',
 	url='https://github.com/scales-okn/scales-nlp',
 	author='Nathan Dahlberg',
-	package_dir={'': 'src'},
-	packages=find_packages('src'),
+	packages=['scales_nlp', 'disambiguation_scripts', 'support'],
+	package_dir={
+		'': 'src',
+		'disambiguation_scripts': 'src/scales_nlp/research_materials/code/research/judge_linking/public_scripts/disambiguation_scripts',
+		'support': 'src/scales_nlp/research_materials/code/support'
+	},
 	install_requires=[
             'cchardet==2.2.0a2',
             'configuration-maker',
@@ -24,13 +29,15 @@ setup(
             'protobuf<3.21.0',
             'sentencepiece',
             'scikit-learn',
+            'spacy',
             'toolz',
             'tqdm',
-            'transformers',
+            'transformers'
 	],
 	
 	data_files=[
         ('scales_nlp', glob('src/scales_nlp/data/*')),
+        ('support', glob('src/scales_nlp/research_materials/code/support/core_data/*'))
     ],
     include_package_data = True,
 

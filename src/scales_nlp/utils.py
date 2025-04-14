@@ -6,10 +6,17 @@ import pandas as pd
 import requests
 import tempfile
 import time
+import glob
 from tqdm import tqdm
 from toolz import partition_all
+from datetime import datetime
+
+# this will probably break if run out of the repo rather than the pypi package
 import scales_nlp
 from scales_nlp import config
+from scales_nlp import docket as docket_functions
+from disambiguation_scripts import extract_new_cases
+from disambiguation_scripts import JED_Main_public as jed
 
 
 PACKAGE_DIR = Path(__file__).parent
@@ -134,10 +141,13 @@ def parse_pacer_dir(court: str=None):
         time.sleep(0.5)
 
 
-def update_classifier_predictions(batch_size=8, reset=False):
-    paths = list(config['PACER_DIR'].glob('*/json/*/*.json'))
+def update_classifier_predictions(indir=None, outdir=None, batch_size=8, reset=False):
+    paths = list(Path(indir).glob('*.json') if indir else config['PACER_DIR'].glob('*/json/*/*.json'))
     if not reset:
-        paths = [path for path in paths if not Path(str(path).replace('/json/', '/labels/')).exists()]
+        length_old = len(paths)
+        paths = [path for path in paths if not (
+            Path(f"{outdir}/{str(path).split('/')[-1]}") if outdir else Path(str(path).replace('/json/', '/labels/'))).exists()]
+        print(f'reset=False; reduced paths list from {length_old} paths to {len(paths)} paths')
     if len(paths) > 0:
         batches = list(partition_all(100, paths))
         nlp = scales_nlp.pipeline('multi-label-classification', model_name='scales-okn/docket-classification')
@@ -148,11 +158,11 @@ def update_classifier_predictions(batch_size=8, reset=False):
                 case_data = pd.DataFrame(case['docket'])
                 case_data['ucid'] = case['ucid']
                 case_data['row_number'] = range(len(case_data))
-                case_data['labels_path'] = Path(str(path).replace('/json/', '/labels/'))
+                case_data['labels_path'] = Path(f"{outdir}/{str(path).split('/')[-1]}" if outdir else str(path).replace('/json/', '/labels/'))
                 batch_data.append(case_data)
             batch_data = pd.concat(batch_data)
             batch_data['labels'] = nlp(batch_data['docket_text'].tolist(), batch_size=batch_size)
-            batch_data =  batch_data[batch_data['labels'].apply(lambda x: len(x) > 0)]
+            batch_data = batch_data[batch_data['labels'].apply(lambda x: len(x) > 0)]
             for path, labels in batch_data.groupby('labels_path'):
                 labels = labels[['row_number', 'labels']]
                 labels['spans'] = labels['labels'].apply(lambda x: [])
@@ -160,6 +170,65 @@ def update_classifier_predictions(batch_size=8, reset=False):
                 path.parent.mkdir(parents=True, exist_ok=True)
                 with open(path, 'w') as f:
                     json.dump(labels, f)
+
+
+def generate_judge_data(indir, outdir):
+    extract_new_cases.main_run(indir, outdir)
+    jed.run_jed(use_config_file=False, indir=outdir, outdir=outdir)
+
+
+# adapted from docket-viewer/ml/cli/update_mongo.py
+def apply_rules(indir, outfile, preds_dir, judge_dir, reset=False):
+    append_mode = (not reset and Path(outfile).exists())
+    if append_mode:
+        print(f"{outfile.split('/')[-1]} exists and reset=False; skipping any cases listed in that file")
+        fnames_to_skip = set([x.replace(';;','-').replace(':','-')+'.json' for x in pd.read_csv(outfile)['ucid']])
+    else:
+        fnames_to_skip = set()
+    fpath_tuples = []
+    for fpath in Path(indir).glob('*.json'):
+        fname = os.path.basename(fpath)
+        court,_,year,_,_ = fname.split('-')
+        if fname not in fnames_to_skip:
+            fpath_tuples.append((fpath, Path(preds_dir)/fname, Path(str(Path(judge_dir)/'SEL_DIR'/court/year/fname)+'l')))
+    for batch in tqdm(list(partition_all(1000, fpath_tuples))):
+        batch_data = []
+        for fpath_tuple in batch:
+            with open(fpath_tuple[0]) as f0, open(fpath_tuple[1]) as f1, open(fpath_tuple[2]) as f2:
+                case_json, label_json, judge_df = json.load(f0), json.load(f1), pd.read_json(f2, lines=True)
+            docket = docket_functions.Docket.from_json(case_json, label_json=label_json, judge_df=judge_df)
+            for entry in docket:
+                for label in entry.labels:
+                    batch_data.append({'ucid': case_json['ucid'], 'row_ordinal': entry.row_number, 'label': label})
+                if entry.event:
+                    label = f'{entry.event.name} ({entry.event.event_type})'
+                    batch_data.append({'ucid': case_json['ucid'], 'row_ordinal': entry.row_number, 'label': label})
+        batch_data = pd.DataFrame(batch_data)
+        # # all this line did in update_mongo.py was pull from a nathan-maintained json file, so i feel ok omitting it & leaving versioning to the end user
+        # batch_data['model_version'] = batch_data['label'].apply(lambda x: None if x not in version['labels'] else version['labels'][x])
+        batch_data['_updated'] = datetime.now()
+        batch_data = batch_data.sort_values(['ucid', 'row_ordinal'])
+        if not append_mode:
+            batch_data.to_csv(outfile, index=False)
+            append_mode = True
+        else:
+            batch_data.to_csv(outfile, index=False, mode='a', header=False)
+
+
+def generate_scales_labels(indir, outfile, preds_dir=None, judge_dir=None, batch_size=8, reset=False):
+    # set up directories
+    if not preds_dir:
+        preds_dir = indir.rstrip('/').rsplit('/',1)[0] + '/intermediate_predictions'
+    if not judge_dir:
+        judge_dir = indir.rstrip('/').rsplit('/',1)[0] + '/intermediate_judge_data'
+    outdir = ('./'+outfile if outfile[0]!='/' else outfile).rsplit('/',1)[0]
+    for path in (preds_dir, judge_dir, outdir):
+        if path and path!='.':
+            Path(path).mkdir(parents=True, exist_ok=True)
+    # run the labeling pipeline
+    update_classifier_predictions(indir=indir, outdir=preds_dir, batch_size=batch_size, reset=reset)
+    generate_judge_data(indir, judge_dir)
+    apply_rules(indir, outfile, preds_dir, judge_dir, reset=reset)
 
 
 
