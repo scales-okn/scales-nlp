@@ -615,7 +615,7 @@ class DocketEntry():
         subdf = judge_df[judge_df.docket_index.eq(scales_ind)] # could be optimized if this function ends up running over entire cases
         if not len(subdf):
             return None
-        spans = [(subdf.at[i,'Entity_Span_Start'], subdf.at[i,'Entity_Span_End']) for i in subdf.index]
+        spans = [(subdf.at[i,'Ent_span_start'], subdf.at[i,'Ent_span_end']) for i in subdf.index]
 
         # for each judge span, take note of the two words preceding it
         preceding_words = []

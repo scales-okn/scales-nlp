@@ -94,8 +94,8 @@ def load_case_judge_labels(ucid: str) -> pd.DataFrame:
 def load_court(court: str) -> Dict:
     courts = COURTS[COURTS['abbreviation'] == court]
     if len(courts) == 0:
-        print(f'Court {court} not found')
-        return None
+        # print(f'Court {court} not found') # i don't think anyone uses anything besides 'abbreviation', so this shouldn't matter...
+        return {'abbreviation': court}
     return courts.iloc[0].to_dict()
 
 
@@ -174,7 +174,7 @@ def update_classifier_predictions(indir=None, outdir=None, batch_size=8, reset=F
 
 def generate_judge_data(indir, outdir):
     extract_new_cases.main_run(indir, outdir)
-    jed.run_jed(use_config_file=False, indir=outdir, outdir=outdir)
+    # jed.run_jed(use_config_file=False, indir=outdir, outdir=outdir)
 
 
 # adapted from docket-viewer/ml/cli/update_mongo.py
@@ -186,16 +186,25 @@ def apply_rules(indir, outfile, preds_dir, judge_dir, reset=False):
     else:
         fnames_to_skip = set()
     fpath_tuples = []
+    judge_df_all = pd.read_csv(Path(judge_dir)/'entries.csv')
+    judge_dfs, current_ucid, last_index = {}, list(judge_df_all.ucid)[0], 0
+    for i in judge_df_all.index:
+        if judge_df_all.at[i,'ucid'] != current_ucid:
+            judge_dfs[current_ucid] = judge_df_all.iloc[last_index:i]
+            current_ucid, last_index = judge_df_all.at[i,'ucid'], i
+        elif i==len(judge_df_all)-1:
+            judge_dfs[current_ucid] = judge_df_all.iloc[last_index:]
     for fpath in Path(indir).glob('*.json'):
         fname = os.path.basename(fpath)
+        ucid = fname.split('.')[0].replace('-',';;',1).replace('-',':',1)
         court,_,year,_,_ = fname.split('-')
         if fname not in fnames_to_skip:
-            fpath_tuples.append((fpath, Path(preds_dir)/fname, Path(str(Path(judge_dir)/'SEL_DIR'/court/year/fname)+'l')))
+            fpath_tuples.append((fpath, Path(preds_dir)/fname, judge_dfs[ucid]))
     for batch in tqdm(list(partition_all(1000, fpath_tuples))):
         batch_data = []
         for fpath_tuple in batch:
-            with open(fpath_tuple[0]) as f0, open(fpath_tuple[1]) as f1, open(fpath_tuple[2]) as f2:
-                case_json, label_json, judge_df = json.load(f0), json.load(f1), pd.read_json(f2, lines=True)
+            with open(fpath_tuple[0]) as f0, open(fpath_tuple[1]) as f1:
+                case_json, label_json, judge_df = json.load(f0), json.load(f1), fpath_tuple[2]
             docket = docket_functions.Docket.from_json(case_json, label_json=label_json, judge_df=judge_df)
             for entry in docket:
                 for label in entry.labels:
