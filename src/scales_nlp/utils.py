@@ -199,19 +199,20 @@ def apply_rules(indir, outfile, preds_dir, judge_dir, reset=False):
         ucid = fname.split('.')[0].replace('-',';;',1).replace('-',':',1)
         court,_,year,_,_ = fname.split('-')
         if fname not in fnames_to_skip:
-            fpath_tuples.append((fpath, Path(preds_dir)/fname, judge_dfs[ucid]))
+            fpath_tuples.append((fpath, Path(preds_dir)/fname, (judge_dfs[ucid] if ucid in judge_dfs else pd.DataFrame())))
     for batch in tqdm(list(partition_all(1000, fpath_tuples))):
         batch_data = []
         for fpath_tuple in batch:
-            with open(fpath_tuple[0]) as f0, open(fpath_tuple[1]) as f1:
-                case_json, label_json, judge_df = json.load(f0), json.load(f1), fpath_tuple[2]
-            docket = docket_functions.Docket.from_json(case_json, label_json=label_json, judge_df=judge_df)
-            for entry in docket:
-                for label in entry.labels:
-                    batch_data.append({'ucid': case_json['ucid'], 'row_ordinal': entry.row_number, 'label': label})
-                if entry.event:
-                    label = f'{entry.event.name} ({entry.event.event_type})'
-                    batch_data.append({'ucid': case_json['ucid'], 'row_ordinal': entry.row_number, 'label': label})
+            if Path(fpath_tuple[1]).exists():
+                with open(fpath_tuple[0]) as f0, open(fpath_tuple[1]) as f1:
+                    case_json, label_json, judge_df = json.load(f0), json.load(f1), fpath_tuple[2]
+                docket = docket_functions.Docket.from_json(case_json, label_json=label_json, judge_df=judge_df)
+                for entry in docket:
+                    for label in entry.labels:
+                        batch_data.append({'ucid': case_json['ucid'], 'row_ordinal': entry.row_number, 'label': label})
+                    if entry.event:
+                        label = f'{entry.event.name} ({entry.event.event_type})'
+                        batch_data.append({'ucid': case_json['ucid'], 'row_ordinal': entry.row_number, 'label': label})
         batch_data = pd.DataFrame(batch_data)
         # # all this line did in update_mongo.py was pull from a nathan-maintained json file, so i feel ok omitting it & leaving versioning to the end user
         # batch_data['model_version'] = batch_data['label'].apply(lambda x: None if x not in version['labels'] else version['labels'][x])
