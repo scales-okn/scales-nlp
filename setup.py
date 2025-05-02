@@ -23,6 +23,7 @@ setup(
             'datasets',
             'evaluate',
             'flashtext',
+            'fuzzywuzzy',
             'numpy',
             'pacer-tools',
             'pandas',
@@ -32,6 +33,7 @@ setup(
             'scikit-learn',
             'spacy',
             'toolz',
+            'torch',
             'tqdm',
             'transformers'
 	],
