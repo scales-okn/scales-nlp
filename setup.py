@@ -2,7 +2,7 @@ from glob import glob
 from setuptools import setup, find_packages
 
 __version__ = None
-exec(open('src/scales_nlp/version.py').read())
+exec(open('tmp/scales_nlp/version.py').read())
 
  
 setup(
@@ -11,17 +11,18 @@ setup(
 	description='',
 	url='https://github.com/scales-okn/scales-nlp',
 	author='Nathan Dahlberg',
-	packages=['scales_nlp', 'disambiguation_scripts', 'support'],
+	packages=['scales_nlp', 'disambiguation_scripts', 'scales_nlp_support'],
 	package_dir={
-		'': 'src',
-		'disambiguation_scripts': 'src/scales_nlp/research_materials/code/research/judge_linking/public_scripts/disambiguation_scripts',
-		'support': 'src/scales_nlp/research_materials/code/support'
+		'': 'tmp',
+		'disambiguation_scripts': 'tmp/scales_nlp/research_materials/code/research/judge_linking/public_scripts/disambiguation_scripts',
+		'scales_nlp_support': 'tmp/scales_nlp/research_materials/code/support'
 	},
 	install_requires=[
             'cchardet==2.2.0a2',
             'configuration-maker',
             'datasets',
             'evaluate',
+            'flashtext',
             'numpy',
             'pacer-tools',
             'pandas',
@@ -36,8 +37,8 @@ setup(
 	],
 	
 	data_files=[
-        ('scales_nlp', glob('src/scales_nlp/data/*')),
-        ('support', glob('src/scales_nlp/research_materials/code/support/core_data/*'))
+        ('scales_nlp', glob('tmp/scales_nlp/data/*')),
+        ('scales_nlp_support', glob('tmp/scales_nlp/research_materials/code/support/core_data/*'))
     ],
     include_package_data = True,
 
