@@ -473,6 +473,7 @@ class Docket():
                 entry['text'] = entry['docket_text']
                 del entry['ind']
                 del entry['docket_text']
+                del entry['description_short']
                 classifier_labels = None if label_json is None else label_json.get(row_number, {}).get('labels', [])
                 classifier_spans = None if label_json is None else label_json.get(row_number, {}).get('spans', [])
                 entries.append(DocketEntry(

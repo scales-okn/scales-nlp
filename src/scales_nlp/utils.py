@@ -151,20 +151,31 @@ def update_classifier_predictions(indir=None, outdir=None, batch_size=8, reset=F
     if len(paths) > 0:
         batches = list(partition_all(100, paths))
         nlp = scales_nlp.pipeline('multi-label-classification', model_name='scales-okn/docket-classification')
+        text_sources = {}
         for batch in tqdm(batches):
             batch_data = []
             for path in batch:
+                path_new = Path(f"{outdir}/{str(path).split('/')[-1]}" if outdir else str(path).replace('/json/', '/labels/'))
+                text_sources[path_new] = {}
                 case = load_json(path)
-                case_data = pd.DataFrame(case['docket'])
+                docket = case['docket']
+                for i in range(len(docket)):
+                    if (not docket[i]['docket_text']) and docket[i].get('description_short'):
+                        docket[i]['docket_text'] = docket[i]['description_short'] # for recap cases, use description_short as a fallback
+                        text_sources[path_new][i] = 'description_short'
+                    else:
+                        text_sources[path_new][i] = 'docket_text'
+                case_data = pd.DataFrame(docket)
                 case_data['ucid'] = case['ucid']
                 case_data['row_number'] = range(len(case_data))
-                case_data['labels_path'] = Path(f"{outdir}/{str(path).split('/')[-1]}" if outdir else str(path).replace('/json/', '/labels/'))
+                case_data['labels_path'] = path_new
                 batch_data.append(case_data)
             batch_data = pd.concat(batch_data)
             batch_data['labels'] = nlp(batch_data['docket_text'].tolist(), batch_size=batch_size)
             batch_data = batch_data[batch_data['labels'].apply(lambda x: len(x) > 0)]
             for path, labels in batch_data.groupby('labels_path'):
                 labels = labels[['row_number', 'labels']]
+                labels['text_source'] = [text_sources[path][i] for i in labels['row_number']]
                 labels['spans'] = labels['labels'].apply(lambda x: [])
                 labels = labels.to_dict(orient='records')
                 path.parent.mkdir(parents=True, exist_ok=True)
@@ -209,10 +220,11 @@ def apply_rules(indir, outfile, preds_dir, judge_dir, reset=False):
                 docket = docket_functions.Docket.from_json(case_json, label_json=label_json, judge_df=judge_df)
                 for entry in docket:
                     for label in entry.labels:
-                        batch_data.append({'ucid': case_json['ucid'], 'row_ordinal': entry.row_number, 'label': label})
+                        text_source = [x for x in label_json if x['row_number']==entry.row_number][0]['text_source']
+                        batch_data.append({'ucid': case_json['ucid'], 'row_ordinal': entry.row_number, 'label': label, 'text_source': text_source})
                     if entry.event:
                         label = f'{entry.event.name} ({entry.event.event_type})'
-                        batch_data.append({'ucid': case_json['ucid'], 'row_ordinal': entry.row_number, 'label': label})
+                        batch_data.append({'ucid': case_json['ucid'], 'row_ordinal': entry.row_number, 'label': label, 'text_source': text_source})
         batch_data = pd.DataFrame(batch_data)
         # # all this line did in update_mongo.py was pull from a nathan-maintained json file, so i feel ok omitting it & leaving versioning to the end user
         # batch_data['model_version'] = batch_data['label'].apply(lambda x: None if x not in version['labels'] else version['labels'][x])
